@@ -64,8 +64,13 @@ func RegisterUser(c *gin.Context) {
 	}
 
 	// 注册用户
-	if err := services.RegisterUser(input.Email); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	err = services.RegisterUser(input.Email)
+	if err != nil {
+		if err.Error() == "用户已存在" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
@@ -121,5 +126,12 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "登录成功", "user": user})
+	// 登录成功后返回用户信息
+	c.JSON(http.StatusOK, gin.H{
+		"message": "登录成功",
+		"user": gin.H{
+			"email": input.Email,
+			"id":    user.ID, // 如果有其他用户信息也可以一并返回
+		},
+	})
 }

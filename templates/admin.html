@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .welcome {
+            font-size: 18px;
+        }
+        .logout {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .content {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="welcome">欢迎, <span id="userEmail"></span></div>
+        <button class="logout" onclick="logout()">退出登录</button>
+    </div>
+    <div class="content">
+        <h2>后台管理系统</h2>
+        <!-- 这里可以添加更多后台管理功能 -->
+    </div>
+
+    <script>
+        // 获取并显示用户信息
+        window.onload = function() {
+            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+            if (!userInfo) {
+                window.location.href = '/user-actions';
+                return;
+            }
+            document.getElementById('userEmail').textContent = userInfo.email;
+        };
+
+        function logout() {
+            localStorage.removeItem('userInfo');
+            window.location.href = '/user-actions';
+        }
+    </script>
+</body>
+</html>
