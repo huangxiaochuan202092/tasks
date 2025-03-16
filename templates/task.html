@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务管理</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .back-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .search-bar {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .search-bar input {
+            padding: 8px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 4px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        
+        .btn-view { background: #17a2b8; color: white; }
+        .btn-view:hover { background: #138496; }
+        
+        .btn-edit { background: #ffc107; color: black; }
+        .btn-edit:hover { background: #e0a800; }
+        
+        .btn-delete { background: #dc3545; color: white; }
+        .btn-delete:hover { background: #c82333; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 50%;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button onclick="window.location.href='/admin'" class="back-btn">返回</button>
+        <h2>任务管理</h2>
+
+        <div id="messageArea"></div>
+        
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="请输入任务标题搜索">
+            <button onclick="searchTasks()" class="btn btn-view">搜索</button>
+            <button onclick="resetSearch()" class="btn btn-edit">重置</button>
+            <button onclick="showNewTaskModal()" class="btn btn-primary">新建任务</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>描述</th>
+                    <th>优先级</th>
+                    <th>状态</th>
+                    <th>截止日期</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="taskTableBody">
+                <!-- 任务数据将在这里动态加载 -->
+            </tbody>
+        </table>
+
+        <!-- 新建/编辑任务的模态框 -->
+        <div id="taskModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3 id="modalTitle">新建任务</h3>
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label for="title">标题：</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">描述：</label>
+                        <textarea id="description" name="description" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">优先级：</label>
+                        <select id="priority" name="priority">
+                            <option value="高">高</option>
+                            <option value="中">中</option>
+                            <option value="低">低</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dueDate">截止日期：</label>
+                        <input type="date" id="dueDate" name="dueDate" required>
+                    </div>
+                    <div class="form-buttons">
+                        <button type="submit" class="btn-primary">保存</button>
+                        <button type="button" class="btn-secondary" onclick="closeTaskModal()">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // 页面加载完成后自动加载任务列表
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('页面加载完成，开始获取任务列表');
+        loadTasks();
+    });
+
+    // 辅助函数：将日期转换为ISO 8601格式并添加时间部分
+    function formatDateToISO(dateString) {
+        const date = new Date(dateString);
+        // 设置固定时间为 18:00:00
+        date.setHours(18, 0, 0, 0);
+        return date.toISOString();
+    }
+
+    // 辅助函数：从ISO时间格式中提取日期部分
+    function extractDateFromISO(isoString) {
+        return isoString ? isoString.split('T')[0] : '';
+    }
+
+    // 加载任务列表
+    function loadTasks() {
+        console.log('开始加载任务列表...');
+        const tbody = document.getElementById('taskTableBody');
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">加载中...</td></tr>';
+
+        fetch('/user/tasks', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+        })
+        .then(response => {
+            console.log('服务器响应状态:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('获取到的原始数据:', data);
+            // 确保数据格式正确
+            const tasks = Array.isArray(data) ? data : (data.data || data.tasks || []);
+            console.log('处理后的任务数据:', tasks);
+
+            if (!tasks || tasks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">暂无任务数据</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = tasks.map(task => {
+                // 确保每个字段都有默认值
+                const safeTask = {
+                    ID: task.ID || task.id || '',
+                    Title: task.Title || task.title || '无标题',
+                    Description: task.Description || task.description || '无描述',
+                    Priority: task.Priority || task.priority || 'medium',
+                    Status: task.Status || task.status || 'pending',
+                    DueDate: extractDateFromISO(task.DueDate || task.due_date) || '未设置'
+                };
+
+                return `
+                    <tr>
+                        <td>${safeTask.ID}</td>
+                        <td>${safeTask.Title}</td>
+                        <td>${safeTask.Description}</td>
+                        <td>${safeTask.Priority}</td>
+                        <td>${safeTask.Status}</td>
+                        <td>${safeTask.DueDate}</td>
+                        <td>
+                            <button onclick="viewTask(${safeTask.ID})" class="btn-view">查看</button>
+                            <button onclick="editTask(${safeTask.ID})" class="btn-edit">编辑</button>
+                            <button onclick="deleteTask(${safeTask.ID})" class="btn-delete">删除</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        })
+        .catch(error => {
+            console.error('加载任务列表失败:', error);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center;">
+                        加载失败: ${error.message}<br>
+                        <button onclick="loadTasks()" class="btn btn-primary" style="margin-top: 10px;">重新加载</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // 查看任务详情
+    function viewTask(id) {
+        console.log('查看任务:', id);
+        fetch(`/user/tasks/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('任务详情:', data);
+                const task = data.task || data;
+                // 使用默认值防止 undefined
+                const safeTask = {
+                    ID: task.ID || task.id || '',
+                    Title: task.Title || task.title || '无标题',
+                    Description: task.Description || task.description || '无描述',
+                    Priority: task.Priority || task.priority || '中',
+                    Status: task.Status || task.status || '待处理',
+                    DueDate: task.DueDate || task.due_date || '未设置'
+                };
+
+                alert(`任务详情：\n
+                    ID: ${safeTask.ID}\n
+                    标题: ${safeTask.Title}\n
+                    描述: ${safeTask.Description}\n
+                    优先级: ${safeTask.Priority}\n
+                    状态: ${safeTask.Status}\n
+                    截止日期: ${safeTask.DueDate}`);
+            })
+            .catch(error => {
+                console.error('查看失败:', error);
+                alert('获取任务信息失败');
+            });
+    }
+
+    // 编辑任务
+    function editTask(id) {
+        console.log('开始编辑任务:', id);
+        const form = document.getElementById('taskForm');
+        form.dataset.action = 'edit';
+        form.dataset.taskId = id;
+
+        fetch(`/user/tasks/${id}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('获取任务详情失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取到的任务数据:', data);
+                const task = data || {};
+                
+                // 使用统一的字段名格式并处理日期
+                const formData = {
+                    title: task.Title || task.title || '',
+                    description: task.Description || task.description || '',
+                    priority: (task.Priority || task.priority || '').toLowerCase(),
+                    due_date: extractDateFromISO(task.DueDate || task.due_date) || '',
+                    status: (task.Status || task.status || '').toLowerCase()
+                };
+
+                console.log('处理后的表单数据:', formData);
+
+                document.getElementById('modalTitle').textContent = '编辑任务';
+                document.getElementById('title').value = formData.title;
+                document.getElementById('description').value = formData.description;
+                document.getElementById('priority').value = formData.priority;
+                document.getElementById('dueDate').value = formData.due_date;
+                
+                // 修改表单提交事件
+                const form = document.getElementById('taskForm');
+                form.onsubmit = function(e) {
+                    e.preventDefault();
+                    updateTask(id);
+                };
+                
+                document.getElementById('taskModal').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('编辑任务失败:', error);
+                alert('获取任务详情失败: ' + error.message);
+            });
+    }
+
+    // 更新任务
+    function updateTask(id) {
+        const dueDate = document.getElementById('dueDate').value;
+        if (!dueDate) {
+            alert('请选择截止日期');
+            return;
+        }
+
+        const formData = {
+            title: document.getElementById('title').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            priority: document.getElementById('priority').value.toLowerCase(),
+            due_date: formatDateToISO(dueDate), // 使用新的日期格式化函数
+            status: "in_progress"
+        };
+
+        console.log('发送更新请求，任务ID:', id);
+        console.log('更新数据:', formData);
+
+        fetch(`/user/tasks/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            console.log('更新响应状态:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(text || '更新失败');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('更新成功，返回数据:', data);
+            alert('更新成功');
+            closeTaskModal();
+            loadTasks(); // 重新加载列表以显示更新后的数据
+        })
+        .catch(error => {
+            console.error('更新失败:', error);
+            alert('更新失败: ' + error.message);
+        });
+    }
+
+    // 删除任务
+    function deleteTask(id) {
+        if (!confirm('确定要删除此任务吗？')) return;
+
+        fetch(`/user/tasks/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('删除失败');
+            }
+            return response.json();
+        })
+        .then(() => {
+            alert('删除成功');
+            loadTasks();
+        })
+        .catch(error => {
+            console.error('删除任务失败:', error);
+            alert('删除失败，请重试');
+        });
+    }
+
+    // 搜索任务
+    function searchTasks() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.getElementById('taskTableBody').getElementsByTagName('tr');
+        
+        Array.from(rows).forEach(row => {
+            const title = row.cells[1].textContent.toLowerCase();
+            const description = row.cells[2].textContent.toLowerCase();
+            row.style.display = (title.includes(searchTerm) || description.includes(searchTerm)) ? '' : 'none';
+        });
+    }
+
+    // 重置搜索并重新加载所有任务
+    function resetSearch() {
+        document.getElementById('searchInput').value = '';
+        loadTasks();
+    }
+
+    // 显示新建任务模态框
+    function showNewTaskModal() {
+        const form = document.getElementById('taskForm');
+        form.reset();
+        form.dataset.action = 'create';
+        delete form.dataset.taskId;
+        
+        // 设置默认日期为今天
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('dueDate').value = formattedToday;
+
+        document.getElementById('modalTitle').textContent = '新建任务';
+        document.getElementById('taskModal').style.display = 'block';
+    }
+
+    // 创建新任务
+    function createTask() {
+        const dueDate = document.getElementById('dueDate').value;
+        if (!dueDate) {
+            alert('请选择截止日期');
+            return;
+        }
+
+        const formData = {
+            title: document.getElementById('title').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            priority: document.getElementById('priority').value.toLowerCase(),
+            due_date: formatDateToISO(dueDate), // 使用新的日期格式化函数
+            status: "pending"
+        };
+
+        // 表单验证
+        if (!formData.title) {
+            alert('请输入任务标题');
+            return;
+        }
+        if (!formData.description) {
+            alert('请输入任务描述');
+            return;
+        }
+
+        console.log('发送创建请求，数据:', formData);
+
+        fetch('/user/tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            console.log('服务器响应状态:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(text || '创建失败');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('创建成功，返回数据:', data);
+            alert('任务创建成功');
+            closeTaskModal();
+            loadTasks();
+        })
+        .catch(error => {
+            console.error('创建失败:', error);
+            alert('创建失败: ' + error.message);
+        });
+    }
+
+    // 移除旧的表单提交事件监听器，改用新的方式
+    document.getElementById('taskForm').onsubmit = null;
+
+    // 关闭模态框
+    function closeTaskModal() {
+        document.getElementById('taskModal').style.display = 'none';
+    }
+
+    // 初始化事件监听
+    document.addEventListener('DOMContentLoaded', function() {
+        // 移除所有现有的提交事件监听器
+        const form = document.getElementById('taskForm');
+        const newForm = form.cloneNode(true);
+        form.parentNode.replaceChild(newForm, form);
+
+        // 设置新的提交事件监听器
+        newForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (newForm.dataset.action === 'edit') {
+                updateTask(newForm.dataset.taskId);
+            } else {
+                createTask();
+            }
+        });
+
+        // 初始化优先级选项
+        const prioritySelect = document.getElementById('priority');
+        prioritySelect.innerHTML = `
+            <option value="high">高</option>
+            <option value="medium">中</option>
+            <option value="low">低</option>
+        `;
+
+        // 加载任务列表
+        loadTasks();
+    });
+
+    // 关闭模态框的事件监听
+    document.querySelector('.close').addEventListener('click', closeTaskModal);
+    window.addEventListener('click', function(event) {
+        if (event.target == document.getElementById('taskModal')) {
+            closeTaskModal();
+        }
+    });
+
+    // 修改初始化代码
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('页面初始化...');
+        
+        // 初始化表单处理
+        initializeForm();
+        
+        // 加载任务列表
+        loadTasks();
+    });
+
+    // 表单初始化函数
+    function initializeForm() {
+        const form = document.getElementById('taskForm');
+        
+        // 移除任何现有的事件监听器
+        const newForm = form.cloneNode(true);
+        form.parentNode.replaceChild(newForm, form);
+
+        // 添加新的提交事件监听器
+        newForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('表单提交，action:', this.dataset.action);
+            
+            if (this.dataset.action === 'edit') {
+                updateTask(this.dataset.taskId);
+            } else {
+                createTask();
+            }
+        });
+    }
+
+    // 显示新建任务模态框
+    function showNewTaskModal() {
+        const form = document.getElementById('taskForm');
+        form.reset();
+        form.dataset.action = 'create';
+        delete form.dataset.taskId;
+        
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('dueDate').value = formattedToday;
+        
+        document.getElementById('modalTitle').textContent = '新建任务';
+        document.getElementById('taskModal').style.display = 'block';
+    }
+
+    // 创建任务函数
+    function createTask() {
+        console.log('开始创建任务...');
+        const dueDate = document.getElementById('dueDate').value;
+        if (!dueDate) {
+            alert('请选择截止日期');
+            return;
+        }
+
+        const formData = {
+            title: document.getElementById('title').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            priority: document.getElementById('priority').value.toLowerCase(),
+            due_date: formatDateToISO(dueDate),
+            status: "pending"
+        };
+
+        if (!formData.title || !formData.description) {
+            alert('请填写完整信息');
+            return;
+        }
+
+        console.log('准备发送的数据:', formData);
+
+        fetch('/user/tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            console.log('服务器响应状态:', response.status);
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(text || '创建失败');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('创建成功，返回数据:', data);
+            closeTaskModal();
+            alert('任务创建成功');
+            loadTasks();
+        })
+        .catch(error => {
+            console.error('创建失败:', error);
+            alert('创建失败: ' + error.message);
+        });
+    }
+
+    // 关闭模态框
+    function closeTaskModal() {
+        document.getElementById('taskModal').style.display = 'none';
+        // 重置表单状态
+        const form = document.getElementById('taskForm');
+        form.reset();
+        delete form.dataset.action;
+        delete form.dataset.taskId;
+    }
+
+    // 移除旧的重复代码
+    // 删除以下内容：
+    // - document.getElementById('taskForm').onsubmit = null;
+    // - document.getElementById('taskForm').addEventListener('submit', function(e) {...});
+    // - 之前的 DOMContentLoaded 事件监听器中的重复代码
+
+    // ...其他现有代码保持不变...
+</script>
+</body>
+</html>

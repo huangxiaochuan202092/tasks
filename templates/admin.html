@@ -1,70 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>后台管理</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
         }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .welcome {
-            font-size: 18px;
-        }
-        .logout {
-            background-color: #f44336;
+
+        .nav-sidebar {
+            width: 200px;
+            background-color: #2c3e50;
             color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 1000;
         }
-        .content {
-            margin-top: 20px;
+
+        .nav-header {
             padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #34495e;
+        }
+
+        .nav-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .nav-header p {
+            margin: 10px 0 0;
+            font-size: 14px;
+        }
+
+        .nav-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .nav-item:hover {
+            background-color: #34495e;
+        }
+
+        .nav-item.active {
+            background-color: #3498db;
+        }
+
+        .logout-btn {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            background-color: #e74c3c;
+            cursor: pointer;
+            text-align: left;
+            border: none;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="welcome">欢迎, <span id="userEmail"></span></div>
-        <button class="logout" onclick="logout()">退出登录</button>
-    </div>
-    <div class="content">
-        <h2>后台管理系统</h2>
-        <!-- 这里可以添加更多后台管理功能 -->
+    <div class="nav-sidebar">
+        <div class="nav-header">
+            <h2>后台管理</h2>
+            <p>欢迎回来</p>
+        </div>
+        <div class="nav-item" onclick="navigateTo('/user_manager')">用户管理</div>
+        <div class="nav-item" onclick="navigateTo('/task_manager')">任务管理</div>
+        <div class="nav-item" onclick="navigateTo('/blog_manager')">博客管理</div>
+        <div class="nav-item" onclick="navigateTo('/wenjuan_manager')">问卷管理</div>
+        <div class="logout-btn" onclick="logout()">退出登录</div>
     </div>
 
     <script>
-        // 获取并显示用户信息
-        window.onload = function() {
-            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-            if (!userInfo) {
-                window.location.href = '/user-actions';
-                return;
-            }
-            document.getElementById('userEmail').textContent = userInfo.email;
-        };
+        // 页面导航
+        function navigateTo(url) {
+            window.location.href = url;
+        }
 
+        // 退出登录
         function logout() {
-            localStorage.removeItem('userInfo');
-            window.location.href = '/user-actions';
+            if (confirm('确定要退出登录吗？')) {
+                window.location.href = '/';
+            }
         }
     </script>
 </body>

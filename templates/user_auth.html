@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户验证</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: bold;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2196F3;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .get-code-btn {
+            width: auto;
+            white-space: nowrap;
+            background-color: #4CAF50;
+        }
+        .get-code-btn:hover {
+            background-color: #388E3C;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+            text-align: center;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>登录/注册</h1>
+        <form id="authForm">
+            <div class="form-group">
+                <label for="email">邮箱地址:</label>
+                <div class="input-group">
+                    <input type="email" id="email" required placeholder="请输入邮箱地址">
+                    <button type="button" class="get-code-btn" onclick="sendCode()">获取验证码</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="code">验证码:</label>
+                <input type="text" id="code" required placeholder="请输入验证码" maxlength="6">
+            </div>
+            <button type="submit" id="submitBtn">登录/注册</button>
+            <div id="message" class="message"></div>
+        </form>
+    </div>
+
+    <script>
+        function showMessage(message, isError = false) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = message;
+            messageEl.className = `message ${isError ? 'error' : 'success'}`;
+            messageEl.style.display = 'block';
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+
+        let isCooldown = false;
+        
+        async function sendCode() {
+            const email = document.getElementById('email').value;
+            if (!email) {
+                showMessage('请输入邮箱地址', true);
+                return;
+            }
+
+            const button = event.target;
+            if (isCooldown) return;
+
+            try {
+                button.disabled = true;
+                isCooldown = true;
+                
+                const response = await fetch('/user/send-code', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    showMessage(result.error || '发送失败', true);
+                    return;
+                }
+
+                showMessage('验证码已发送，请查收邮件');
+                
+                let countdown = 60;
+                const timer = setInterval(() => {
+                    button.textContent = `${countdown}秒后重试`;
+                    countdown--;
+                    if (countdown < 0) {
+                        clearInterval(timer);
+                        button.textContent = '获取验证码';
+                        button.disabled = false;
+                        isCooldown = false;
+                    }
+                }, 1000);
+            } catch (error) {
+                showMessage('发送失败，请重试', true);
+                button.disabled = false;
+                isCooldown = false;
+            }
+        }
+
+        document.getElementById('authForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const code = document.getElementById('code').value;
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!email || !code) {
+                showMessage('请填写完整信息', true);
+                return;
+            }
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = '处理中...';
+
+                const response = await fetch('/user/login-or-register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, code })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    showMessage(result.error || '验证失败', true);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '登录/注册';
+                    return;
+                }
+
+                // 保存用户信息
+                localStorage.setItem('userInfo', JSON.stringify({
+                    email: email,
+                    ...result.user
+                }));
+
+                showMessage('验证成功，正在跳转...', false);
+                
+                // 延迟跳转到后台页面
+                setTimeout(() => {
+                    window.location.href = '/admin';
+                }, 1500);
+
+            } catch (error) {
+                showMessage('请求失败，请重试', true);
+                submitBtn.disabled = false;
+                submitBtn.textContent = '登录/注册';
+            }
+        });
+    </script>
+</body>
+</html>

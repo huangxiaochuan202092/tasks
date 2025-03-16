@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>用户管理</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .back-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .search-bar {
+            margin: 20px 0;
+        }
+        .search-bar input {
+            padding: 8px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .search-bar button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .search-bar button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .btn-view { 
+            background: #17a2b8; 
+            color: white; 
+        }
+        .btn-view:hover {
+            background: #138496;
+        }
+        .btn-edit { 
+            background: #ffc107; 
+            color: black;
+        }
+        .btn-edit:hover {
+            background: #e0a800;
+        }
+        .btn-delete { 
+            background: #dc3545; 
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button onclick="window.location.href='/admin'" class="back-btn">返回</button>
+        <h2>用户管理</h2>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="请输入邮箱搜索">
+            <button onclick="searchUsers()" class="btn btn-view">搜索</button>
+            <button onclick="resetSearch()" class="btn btn-edit">重置</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>邮箱</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                <!-- 数据将在这里动态加载 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 页面加载完成后自动加载用户列表
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成，开始获取用户列表');
+            loadUsers();
+        });
+
+        // 加载用户列表
+        function loadUsers() {
+            console.log('开始加载用户列表...');
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">加载中...</td></tr>';
+
+            fetch('/user/')
+                .then(response => {
+                    console.log('响应状态:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('收到的数据:', data);
+                    // 确保数据是数组格式
+                    const users = Array.isArray(data) ? data : (data.data || data.users || []);
+                    console.log('处理后的用户数据:', users);
+
+                    if (!users || users.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">暂无用户数据</td></tr>';
+                        return;
+                    }
+
+                    // 生成表格内容
+                    tbody.innerHTML = users.map(user => `
+                        <tr>
+                            <td>${user.ID || user.id}</td>
+                            <td>${user.Email || user.email}</td>
+                            <td>
+                                <button onclick="viewUser('${user.ID || user.id}')" class="btn-view">查看</button>
+                                <button onclick="editUser('${user.ID || user.id}')" class="btn-edit">编辑</button>
+                                <button onclick="deleteUser('${user.ID || user.id}')" class="btn-delete">删除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('加载失败:', error);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" style="text-align: center;">
+                                加载失败，请刷新重试<br>
+                                <button onclick="loadUsers()" style="margin-top: 10px;">重新加载</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        // 查看用户
+        function viewUser(id) {
+            console.log('查看用户:', id);
+            fetch(`/user/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('用户详情:', data);
+                    const user = data.user || data;
+                    alert(`用户信息：\nID: ${user.ID || user.id}\n邮箱: ${user.Email || user.email}`);
+                })
+                .catch(error => {
+                    console.error('查看失败:', error);
+                    alert('获取用户信息失败');
+                });
+        }
+
+        // 编辑用户
+        function editUser(id) {
+            // 使用更可靠的方式获取当前行
+            const rows = document.querySelectorAll('#userTableBody tr');
+            let currentRow;
+            for (let row of rows) {
+                if (row.cells[0].textContent == id) {
+                    currentRow = row;
+                    break;
+                }
+            }
+            
+            if (!currentRow) {
+                console.error('找不到对应的行:', id);
+                return;
+            }
+
+            const currentEmail = currentRow.cells[1].textContent;
+            console.log('当前邮箱:', currentEmail);
+            
+            const newEmail = prompt('请输入新的邮箱地址：', currentEmail);
+            
+            if (!newEmail || newEmail === currentEmail) {
+                return;
+            }
+
+            console.log('发送更新请求:', id, newEmail);
+
+            fetch(`/user/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: newEmail
+                })
+            })
+            .then(response => {
+                console.log('收到响应:', response);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || '修改失败');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('更新成功:', data);
+                alert('修改成功！');
+                currentRow.cells[1].textContent = newEmail;
+            })
+            .catch(error => {
+                console.error('编辑用户失败:', error);
+                alert('修改失败：' + (error.message || '请重试'));
+            });
+        }
+
+        // 删除用户
+        function deleteUser(id) {
+            console.log('删除用户:', id);
+            if (!confirm('确定要删除此用户吗？')) return;
+
+            fetch(`/user/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('删除成功:', data);
+                alert('删除成功');
+                loadUsers(); // 重新加载列表
+            })
+            .catch(error => {
+                console.error('删除失败:', error);
+                alert('删除失败，请重试');
+            });
+        }
+
+        // 搜索用户
+        function searchUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.getElementById('userTableBody').getElementsByTagName('tr');
+            
+            Array.from(rows).forEach(row => {
+                const email = row.cells[1].textContent.toLowerCase();
+                row.style.display = email.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        // 重置搜索
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            loadUsers();
+        }
+    </script>
+</body>
+</html>
